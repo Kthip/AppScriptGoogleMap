@@ -1,0 +1,65 @@
+
+function getCafeInSamutPrakan() {
+  const apiKey = 'AIzaSyAaatPCYm8FoF7fprFQdASceGzio2CK4B8';
+  const location = '13.573933,100.635940'; // พิกัด
+  const radius = 50000; // รัศมีในการค้นหา (เมตร)
+  const type = 'cafe'; // ประเภทของสถานที่ 
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  let nextPageToken = null;
+  let row = 2;
+  let totalResults = 0; // เพิ่มตัวแปรนี้เพื่อเก็บจำนวนผลลัพธ์ที่ได้
+  
+  // กำหนดหัวตาราง
+  sheet.getRange('A1').setValue('Name');
+  sheet.getRange('B1').setValue('Address');
+  sheet.getRange('C1').setValue('Phone Number');
+  sheet.getRange('D1').setValue('Latitude');
+  sheet.getRange('E1').setValue('Longitude');
+
+  do {
+    let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location}&radius=${radius}&type=${type}&key=${apiKey}`;
+    if (nextPageToken) {
+      url += `&pagetoken=${nextPageToken}`;
+      Utilities.sleep(2000); // ต้องรอ 2 วินาทีก่อนใช้ next_page_token
+    }
+    
+    const response = UrlFetchApp.fetch(url);
+    const data = JSON.parse(response.getContentText());
+    
+    if (data.status === 'OK') {
+      const results = data.results;
+      totalResults += results.length; // เพิ่มจำนวนผลลัพธ์ที่ได้ในแต่ละคำขอ
+      for (let i = 0; i < results.length; i++) {
+        const place = results[i];
+        const placeId = place.place_id;
+        
+        // เรียก Place Details API เพื่อดึงข้อมูลที่อยู่และเบอร์โทรศัพท์
+        const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,formatted_phone_number,geometry&key=${apiKey}`;
+        const detailsResponse = UrlFetchApp.fetch(detailsUrl);
+        const detailsData = JSON.parse(detailsResponse.getContentText());
+        
+        if (detailsData.status === 'OK') {
+          const placeDetails = detailsData.result;
+          const name = placeDetails.name;
+          const address = placeDetails.formatted_address;
+          const phoneNumber = placeDetails.formatted_phone_number || 'N/A';
+          const location = placeDetails.geometry.location;
+          const lat = location.lat;
+          const lng = location.lng;
+          
+          sheet.getRange(row, 1).setValue(name);
+          sheet.getRange(row, 2).setValue(address);
+          sheet.getRange(row, 3).setValue(phoneNumber);
+          sheet.getRange(row, 4).setValue(lat);
+          sheet.getRange(row, 5).setValue(lng);
+          row++;
+        }
+      }
+      nextPageToken = data.next_page_token;
+    } else {
+      Logger.log(`Error: ${data.status}`);
+      break;
+    }
+  } while (nextPageToken && totalResults < 200); // เพิ่มเงื่อนไข totalResults < 200 เพื่อกำหนดขีดจำกัด
+}
+
