@@ -1,6 +1,6 @@
 
 function getCafeInSamutPrakan() {
-  const apiKey = 'AIzaSyAaatPCYm8FoF7fprFQdASceGzio2CK4B8';
+  const apiKey = 'YOUR_API_KEY';
   const location = '13.573933,100.635940'; // พิกัด
   const radius = 50000; // รัศมีในการค้นหา (เมตร)
   const type = 'cafe'; // ประเภทของสถานที่ 
